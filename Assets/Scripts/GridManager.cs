@@ -4,13 +4,26 @@ public class GridManager : MonoBehaviour
 {
     [SerializeField] private int width = 8;
     [SerializeField] private int height = 8;
+
+    public static GridManager Instance;
+
+    // DEĞİŞİKLİK BURADA: Artık bool (true/false) değil, Transform (obje) tutuyoruz!
+    public Transform[,] gridArray; 
+
     [SerializeField] private GameObject tilePrefab;
-    [SerializeField] private Color tileColor; 
+    [SerializeField] private Color tileColor;
+
+    void Awake()
+    {
+        Instance = this;
+    }
 
     void Start()
     {
+        // Hafızayı obje tutacak şekilde başlatıyoruz
+        gridArray = new Transform[width, height];
         GenerateGrid();
-        AdjustCamera(); // Kamerayı ekrana göre ayarlayan yeni fonksiyonumuz
+        AdjustCamera(); 
     }
 
     void GenerateGrid()
@@ -31,11 +44,82 @@ public class GridManager : MonoBehaviour
 
     void AdjustCamera()
     {
-        // 1. Zoom Ayarı: Kameranın görüş alanını genişletiyoruz ki 8 sütun tam sığsın
-        Camera.main.orthographicSize = 8f; 
-
-        // 2. Pozisyon Ayarı: Kamerayı X ekseninde tam ortaya, Y ekseninde ise biraz aşağıya (-2f) alıyoruz.
-        // Kamera aşağı inince, ızgaramız ekranda otomatik olarak yukarı kaymış olacak.
+        Camera.main.orthographicSize = 8f;
         Camera.main.transform.position = new Vector3((float)width / 2 - 0.5f, (float)height / 2 - 0.5f - 2.5f, -10);
+    }
+
+    public bool IsValidPosition(int x, int y)
+    {
+        if (x < 0 || x >= width || y < 0 || y >= height)
+        {
+            return false;
+        }
+
+        // Kural 2 Güncellendi: Orada kaydedilmiş bir obje var mı?
+        if (gridArray[x, y] != null) 
+        {
+            return false;
+        }
+
+        return true;
+    }
+
+    // --- YENİ: SATIR VE SÜTUN PATLATMA SİSTEMİ ---
+
+    public void CheckLines()
+    {
+        // Tüm yatay satırları kontrol et
+        for (int y = 0; y < height; y++)
+        {
+            if (IsRowFull(y)) ClearRow(y);
+        }
+
+        // Tüm dikey sütunları kontrol et
+        for (int x = 0; x < width; x++)
+        {
+            if (IsColumnFull(x)) ClearColumn(x);
+        }
+    }
+
+    private bool IsRowFull(int y)
+    {
+        for (int x = 0; x < width; x++)
+        {
+            if (gridArray[x, y] == null) return false; // Bir tane bile boşluk varsa dolmamıştır
+        }
+        return true;
+    }
+
+    private bool IsColumnFull(int x)
+    {
+        for (int y = 0; y < height; y++)
+        {
+            if (gridArray[x, y] == null) return false; // Bir tane bile boşluk varsa dolmamıştır
+        }
+        return true;
+    }
+
+    private void ClearRow(int y)
+    {
+        for (int x = 0; x < width; x++)
+        {
+            if (gridArray[x, y] != null)
+            {
+                Destroy(gridArray[x, y].gameObject); // Obceyi sahnede patlat (sil)
+                gridArray[x, y] = null; // Hafızadan sil
+            }
+        }
+    }
+
+    private void ClearColumn(int x)
+    {
+        for (int y = 0; y < height; y++)
+        {
+            if (gridArray[x, y] != null)
+            {
+                Destroy(gridArray[x, y].gameObject); // Obceyi sahnede patlat (sil)
+                gridArray[x, y] = null; // Hafızadan sil
+            }
+        }
     }
 }

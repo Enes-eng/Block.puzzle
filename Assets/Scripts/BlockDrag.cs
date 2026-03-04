@@ -1,44 +1,99 @@
 using UnityEngine;
+using System.Collections.Generic; // <--- YENİ EKLENDİ (Liste kullanmak için)
 
 public class BlockDrag : MonoBehaviour
 {
-    private Vector3 startPosition; // Şeklin aşağıda beklediği orijinal yeri
-    private Vector3 offset;        // Fareyle şeklin merkezi arasındaki tutma payı
+    private Vector3 startPosition;
+    private Vector3 offset;
 
-    // Fareyle objenin üzerine tıklandığı ilk an çalışır
+    // YENİ: Bloğun ızgaraya yerleşip yerleşmediğini tutacak kilit (Flag)
+    private bool isPlaced = false; 
+
+    // 1. Fareyle bloğa İLK TIKLADIĞIMIZ an çalışır
     void OnMouseDown()
     {
-        // Yanlış bir yere bırakırsak geri dönsün diye ilk yerini hafızaya alıyoruz
+        // KURAL 3 ÇÖZÜMÜ: Eğer blok zaten yerleştiyse, tekrar tutulamaz!
+        if (isPlaced) return;
+
+        // Bloğun yerini (aşağıdaki doğduğu noktayı) hafızaya alıyoruz!
         startPosition = transform.position;
 
-        // Farenin ucu tam bloğun neresinden tuttuysa orayı hesaplıyoruz
-        offset = transform.position - GetMouseWorldPos();
+        // KURAL 1 ÇÖZÜMÜ: Tıklandığı an bloğu hemen tam boyuta (1x1) çıkarıyoruz!
+        transform.localScale = Vector3.one; // new Vector3(1f, 1f, 1f) demek.
 
-        // Bloğu tuttuğumuzda orijinal oyunlardaki gibi %100 boyutuna (büyük haline) getiriyoruz
-        transform.localScale = new Vector3(1f, 1f, 1f);
+        // Farenin ucu ile bloğun merkezi arasındaki mesafeyi hesapla
+        offset = transform.position - Camera.main.ScreenToWorldPoint(Input.mousePosition);
     }
 
-    // Fareye basılı tutup sürüklediğimiz sürece çalışır
+    // 2. Fareyi BASILI TUTUP SÜRÜKLEDİĞİMİZ sürece çalışır
     void OnMouseDrag()
     {
-        // Şeklin pozisyonunu, farenin pozisyonuna eşitliyoruz (peşimizden geliyor)
-        transform.position = GetMouseWorldPos() + offset;
+        // Zaten yerleştiyse sürüklenemez
+        if (isPlaced) return;
+
+        Vector3 newPos = Camera.main.ScreenToWorldPoint(Input.mousePosition) + offset;
+        newPos.z = 0; // Derinlik olmasın
+        transform.position = newPos;
     }
 
-    // Fare tıklamasını bıraktığımız an çalışır
+    // 3. Fareyi BIRAKTIĞIMIZ an çalışır
     void OnMouseUp()
     {
-        // ŞİMDİLİK: Sadece bıraktığımızda eski yerine ve ufak boyutuna geri dönsün.
-        // (Izgaraya yapışma algoritmasını bir sonraki adımda yazacağız!)
-        transform.position = startPosition;
-        transform.localScale = new Vector3(0.6f, 0.6f, 1f);
-    }
+        // Zaten yerleştiyse işlem yapmaya gerek yok
+        if (isPlaced) return;
 
-    // Farenin ekrandaki piksel konumunu, oyun dünyası koordinatlarına çeviren fonksiyon
-    private Vector3 GetMouseWorldPos()
-    {
-        Vector3 mousePos = Input.mousePosition;
-        mousePos.z = -Camera.main.transform.position.z; 
-        return Camera.main.ScreenToWorldPoint(mousePos);
+        // Hedef noktayı tam sayılara yuvarla
+        float snapX = Mathf.Round(transform.position.x);
+        float snapY = Mathf.Round(transform.position.y);
+        Vector3 targetPos = new Vector3(snapX, snapY, 0f);
+
+        // Bloğu geçici olarak bu hedefe oturt (karelerin yerini ölçmek için)
+        transform.position = targetPos;
+
+        bool canPlace = true;
+
+        // Geçerli olursa GridManager'a göndermek için kapladığı koordinatların geçici listesi
+        List<Vector2Int> tempOccupiedCells = new List<Vector2Int>();
+
+        // Bloğun içindeki küçük kırmızı kareleri tek tek kontrol et
+        foreach (Transform child in transform)
+        {
+            int x = Mathf.RoundToInt(child.position.x);
+            int y = Mathf.RoundToInt(child.position.y);
+
+            // GridManager'daki kuralı soruyoruz: İçerisi boş mu? Sınırların içinde mi?
+            if (GridManager.Instance.IsValidPosition(x, y) == false)
+            {
+                canPlace = false; // Hamleyi iptal et!
+                break;
+            }
+            // Eğer burası uygunsa listeye ekle
+            tempOccupiedCells.Add(new Vector2Int(x, y));
+        }
+
+        // Testin Sonucu
+       // Testin Sonucu
+        if (canPlace == true)
+        {
+            // YENİ: Bloğun içindeki her bir küçük kareyi GridManager'ın hafızasına "Obje" olarak kaydediyoruz
+            foreach (Transform child in transform)
+            {
+                int x = Mathf.RoundToInt(child.position.x);
+                int y = Mathf.RoundToInt(child.position.y);
+                GridManager.Instance.gridArray[x, y] = child; // O kordinata "bu kare yerleşti" diyoruz
+            }
+
+            isPlaced = true; 
+            BlockSpawner.Instance.BlockPlaced(); // Spawner'a haber ver (zaten yapmıştın)
+
+            // YENİ: Blok yerleştiği anda GridManager'a bağırıyoruz: "Tahtayı kontrol et, dolan satır var mı?"
+            GridManager.Instance.CheckLines();
+        }
+        else
+        {
+            // Hamle GEÇERSİZ: Blok hafızaya aldığımız o ilk yerine (aşağıya) geri döner
+            transform.position = startPosition;
+            transform.localScale = new Vector3(0.6f, 0.6f, 1f); // Doğuş boyutuna geri dön
+        }
     }
 }
