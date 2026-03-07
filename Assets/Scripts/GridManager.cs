@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.UI;
 
 public class GridManager : MonoBehaviour
 {
@@ -12,6 +13,11 @@ public class GridManager : MonoBehaviour
 
     [SerializeField] private GameObject tilePrefab;
     [SerializeField] private Color tileColor;
+
+    [Header("Puzzle Settings")]
+    public Image fillImage; // Dolan barımız
+    public int totalPiecesToWin = 5; // Kazanmak için gereken parça sayısı
+    private int currentPieces = 0; // Şu an toplanan
 
     void Awake()
     {
@@ -105,8 +111,27 @@ public class GridManager : MonoBehaviour
         {
             if (gridArray[x, y] != null)
             {
-                Destroy(gridArray[x, y].gameObject); // Obceyi sahnede patlat (sil)
-                gridArray[x, y] = null; // Hafızadan sil
+                if (gridArray[x, y].CompareTag("PuzzlePiece"))
+                {
+                    currentPieces++; // Parça sayısını artır
+                    Debug.Log($"YAPBOZ TOPLANDI! {currentPieces}/{totalPiecesToWin}");
+                    
+                    // Barı doldur! (Matematiksel olarak yüzdesini hesaplar)
+                    if (fillImage != null)
+                    {
+                        fillImage.fillAmount = (float)currentPieces / totalPiecesToWin;
+                    }
+
+                    // Oyunu kazanma kontrolü
+                    if (currentPieces >= totalPiecesToWin)
+                    {
+                        Debug.Log("TEBRİKLER! BÖLÜMÜ GEÇTİN! 🏆");
+                        // İleride buraya Kazandın ekranı açma kodu gelecek
+                    }
+                }
+
+                Destroy(gridArray[x, y].gameObject);
+                gridArray[x, y] = null;
             }
         }
     }
@@ -117,8 +142,26 @@ public class GridManager : MonoBehaviour
         {
             if (gridArray[x, y] != null)
             {
-                Destroy(gridArray[x, y].gameObject); // Obceyi sahnede patlat (sil)
-                gridArray[x, y] = null; // Hafızadan sil
+                if (gridArray[x, y].CompareTag("PuzzlePiece"))
+                {
+                    currentPieces++; // Parça sayısını artır
+                    Debug.Log($"YAPBOZ TOPLANDI! {currentPieces}/{totalPiecesToWin}");
+                    
+                    // Barı doldur! (Matematiksel olarak yüzdesini hesaplar)
+                    if (fillImage != null)
+                    {
+                        fillImage.fillAmount = (float)currentPieces / totalPiecesToWin;
+                    }
+
+                    // Oyunu kazanma kontrolü
+                    if (currentPieces >= totalPiecesToWin)
+                    {
+                        Debug.Log("TEBRİKLER! BÖLÜMÜ GEÇTİN! 🏆");
+                    }
+                }
+
+                Destroy(gridArray[x, y].gameObject);
+                gridArray[x, y] = null;
             }
         }
     }

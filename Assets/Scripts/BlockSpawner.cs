@@ -1,23 +1,23 @@
 using UnityEngine;
+using System.Collections.Generic; 
 
 public class BlockSpawner : MonoBehaviour
 {
+    public static BlockSpawner Instance; 
+    private int usedBlocksCount = 0; 
+
     [SerializeField] private GameObject[] blockPrefabs;
     [SerializeField] private Transform[] spawnPoints;
     [SerializeField] private int gridWidth = 8;
 
-    // Her slot'un merkez X'i (ızgara 0-7 arası, 3 eşit bölge)
     private float[] slotCenters = new float[] { 1f, 3.5f, 6f };
-    // Her slot'un max genişliği (taşmayı önler)
     private float slotMaxWidth = 2.5f;
-    public static BlockSpawner Instance; // Diğer kodlardan ulaşmak için köprü
-    private int usedBlocksCount = 0; // Yerleşen blok sayacı
 
     void Awake()
     {
         Instance = this;
     }
-    
+
     void Start()
     {
         SpawnBlocks();
@@ -25,17 +25,20 @@ public class BlockSpawner : MonoBehaviour
 
     public void SpawnBlocks()
     {
-        usedBlocksCount = 0;
-        
+        usedBlocksCount = 0; 
+        List<GameObject> currentBlocks = new List<GameObject>(); 
+
         for (int i = 0; i < spawnPoints.Length; i++)
         {
             int randomIndex = Random.Range(0, blockPrefabs.Length);
 
+            
             GameObject newBlock = Instantiate(
                 blockPrefabs[randomIndex],
                 Vector3.zero,
                 Quaternion.identity
-            );
+            ); 
+
             newBlock.transform.localScale = new Vector3(0.6f, 0.6f, 1f);
 
             // Bloğun gerçek sınırlarını hesapla
@@ -51,10 +54,10 @@ public class BlockSpawner : MonoBehaviour
             }
 
             float blockWidth = (maxX - minX);
-            
+
             // Bloğu slot'un ortasına hizala
             float spawnX = slotCenters[i] - (blockWidth / 2f) - minX;
-            
+
             // Izgara sınırlarını aşmasın
             float rightEdge = spawnX + minX + blockWidth;
             if (rightEdge > gridWidth - 0.5f)
@@ -69,18 +72,49 @@ public class BlockSpawner : MonoBehaviour
             );
 
             newBlock.transform.position = finalPos;
-        }
+
+            // Blok tamamen hazırlandıktan sonra listeye ekliyoruz
+            currentBlocks.Add(newBlock); 
+        } // FOR DÖNGÜSÜ BURADA BİTİYOR
+
+        // 3 blok da sahnede doğduktan SONRA yapbozu aralarından birine gizliyoruz
+        AddPuzzlePieceToRandomBlock(currentBlocks); 
     }
 
     // Blok ızgaraya yerleştiğinde bu fonksiyon çalışacak
     public void BlockPlaced()
     {
-        usedBlocksCount++; // Yerleşen blok sayısını 1 artır
+        usedBlocksCount++; 
 
-        // Eğer 3 blok da yerleşip bittiyse yenilerini getir!
         if (usedBlocksCount >= 3)
         {
             SpawnBlocks(); 
+        }
+    }
+
+    // 3 blok arasından rastgele birine yapboz ikonu ekler
+    private void AddPuzzlePieceToRandomBlock(List<GameObject> blocks)
+    {
+        int luckyBlockIndex = Random.Range(0, blocks.Count);
+        GameObject luckyBlock = blocks[luckyBlockIndex];
+
+        int childCount = luckyBlock.transform.childCount;
+        if (childCount > 0)
+        {
+            int luckyTileIndex = Random.Range(0, childCount);
+            Transform luckyTile = luckyBlock.transform.GetChild(luckyTileIndex);
+
+            if (luckyTile.childCount > 0)
+            {
+                Transform puzzleIcon = luckyTile.GetChild(0); 
+                SpriteRenderer sr = puzzleIcon.GetComponent<SpriteRenderer>();
+                
+                if (sr != null)
+                {
+                    sr.enabled = true; 
+                    luckyTile.tag = "PuzzlePiece"; 
+                }
+            }
         }
     }
 }
