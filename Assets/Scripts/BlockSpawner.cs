@@ -41,7 +41,6 @@ public class BlockSpawner : MonoBehaviour
 
             newBlock.transform.localScale = new Vector3(0.6f, 0.6f, 1f);
 
-            // Bloğun gerçek sınırlarını hesapla
             float minX = float.MaxValue;
             float maxX = float.MinValue;
             float minY = float.MaxValue;
@@ -55,10 +54,8 @@ public class BlockSpawner : MonoBehaviour
 
             float blockWidth = (maxX - minX);
 
-            // Bloğu slot'un ortasına hizala
             float spawnX = slotCenters[i] - (blockWidth / 2f) - minX;
 
-            // Izgara sınırlarını aşmasın
             float rightEdge = spawnX + minX + blockWidth;
             if (rightEdge > gridWidth - 0.5f)
                 spawnX -= (rightEdge - (gridWidth - 0.5f));
@@ -73,15 +70,12 @@ public class BlockSpawner : MonoBehaviour
 
             newBlock.transform.position = finalPos;
 
-            // Blok tamamen hazırlandıktan sonra listeye ekliyoruz
             currentBlocks.Add(newBlock); 
-        } // FOR DÖNGÜSÜ BURADA BİTİYOR
+        } 
 
-        // 3 blok da sahnede doğduktan SONRA yapbozu aralarından birine gizliyoruz
         AddPuzzlePieceToRandomBlock(currentBlocks); 
     }
 
-    // Blok ızgaraya yerleştiğinde bu fonksiyon çalışacak
     public void BlockPlaced()
     {
         usedBlocksCount++; 
@@ -92,7 +86,6 @@ public class BlockSpawner : MonoBehaviour
         }
     }
 
-    // 3 blok arasından rastgele birine yapboz ikonu ekler
     private void AddPuzzlePieceToRandomBlock(List<GameObject> blocks)
     {
         int luckyBlockIndex = Random.Range(0, blocks.Count);

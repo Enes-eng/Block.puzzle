@@ -1,5 +1,7 @@
 using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.SceneManagement;
+using System.Collections.Generic;
 
 public class GridManager : MonoBehaviour
 {
@@ -7,17 +9,20 @@ public class GridManager : MonoBehaviour
     [SerializeField] private int height = 8;
 
     public static GridManager Instance;
+    public static bool isGameOver = false; 
 
-    // DEĞİŞİKLİK BURADA: Artık bool (true/false) değil, Transform (obje) tutuyoruz!
+    public GameObject winPanel;      
+    public GameObject gameOverPanel; 
+
     public Transform[,] gridArray; 
 
     [SerializeField] private GameObject tilePrefab;
     [SerializeField] private Color tileColor;
 
     [Header("Puzzle Settings")]
-    public Image fillImage; // Dolan barımız
-    public int totalPiecesToWin = 5; // Kazanmak için gereken parça sayısı
-    private int currentPieces = 0; // Şu an toplanan
+    public Image fillImage; 
+    public int totalPiecesToWin = 5; 
+    private int currentPieces = 0; 
 
     void Awake()
     {
@@ -26,10 +31,11 @@ public class GridManager : MonoBehaviour
 
     void Start()
     {
-        // Hafızayı obje tutacak şekilde başlatıyoruz
+        
         gridArray = new Transform[width, height];
         GenerateGrid();
         AdjustCamera(); 
+        isGameOver = false;
     }
 
     void GenerateGrid()
@@ -61,7 +67,6 @@ public class GridManager : MonoBehaviour
             return false;
         }
 
-        // Kural 2 Güncellendi: Orada kaydedilmiş bir obje var mı?
         if (gridArray[x, y] != null) 
         {
             return false;
@@ -70,28 +75,28 @@ public class GridManager : MonoBehaviour
         return true;
     }
 
-    // --- YENİ: SATIR VE SÜTUN PATLATMA SİSTEMİ ---
 
     public void CheckLines()
     {
-        // Tüm yatay satırları kontrol et
+        
         for (int y = 0; y < height; y++)
         {
             if (IsRowFull(y)) ClearRow(y);
         }
 
-        // Tüm dikey sütunları kontrol et
         for (int x = 0; x < width; x++)
         {
             if (IsColumnFull(x)) ClearColumn(x);
         }
+
+        CheckIfGameOver();
     }
 
     private bool IsRowFull(int y)
     {
         for (int x = 0; x < width; x++)
         {
-            if (gridArray[x, y] == null) return false; // Bir tane bile boşluk varsa dolmamıştır
+            if (gridArray[x, y] == null) return false; 
         }
         return true;
     }
@@ -100,7 +105,7 @@ public class GridManager : MonoBehaviour
     {
         for (int y = 0; y < height; y++)
         {
-            if (gridArray[x, y] == null) return false; // Bir tane bile boşluk varsa dolmamıştır
+            if (gridArray[x, y] == null) return false;
         }
         return true;
     }
@@ -113,20 +118,21 @@ public class GridManager : MonoBehaviour
             {
                 if (gridArray[x, y].CompareTag("PuzzlePiece"))
                 {
-                    currentPieces++; // Parça sayısını artır
-                    Debug.Log($"YAPBOZ TOPLANDI! {currentPieces}/{totalPiecesToWin}");
+                    currentPieces++; 
                     
-                    // Barı doldur! (Matematiksel olarak yüzdesini hesaplar)
                     if (fillImage != null)
                     {
                         fillImage.fillAmount = (float)currentPieces / totalPiecesToWin;
                     }
 
-                    // Oyunu kazanma kontrolü
                     if (currentPieces >= totalPiecesToWin)
                     {
-                        Debug.Log("TEBRİKLER! BÖLÜMÜ GEÇTİN! 🏆");
-                        // İleride buraya Kazandın ekranı açma kodu gelecek
+                        isGameOver = true; 
+                        
+                        if (winPanel != null)
+                        {
+                            winPanel.SetActive(true);
+                        }
                     }
                 }
 
@@ -144,24 +150,135 @@ public class GridManager : MonoBehaviour
             {
                 if (gridArray[x, y].CompareTag("PuzzlePiece"))
                 {
-                    currentPieces++; // Parça sayısını artır
-                    Debug.Log($"YAPBOZ TOPLANDI! {currentPieces}/{totalPiecesToWin}");
+                    currentPieces++; 
                     
-                    // Barı doldur! (Matematiksel olarak yüzdesini hesaplar)
                     if (fillImage != null)
                     {
                         fillImage.fillAmount = (float)currentPieces / totalPiecesToWin;
                     }
 
-                    // Oyunu kazanma kontrolü
-                    if (currentPieces >= totalPiecesToWin)
+                   if (currentPieces >= totalPiecesToWin)
                     {
-                        Debug.Log("TEBRİKLER! BÖLÜMÜ GEÇTİN! 🏆");
+                        isGameOver = true; 
+                        
+                        if (winPanel != null)
+                        {
+                            winPanel.SetActive(true);
+                        }
                     }
                 }
 
                 Destroy(gridArray[x, y].gameObject);
                 gridArray[x, y] = null;
+            }
+        }
+    }
+
+    public void RestartGame()
+    {
+        SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
+    }
+
+    // Tek bir bloğu alır ve tahtadaki TÜM KARELERİ tek tek gezerek sığıp sığmadığını dener
+    private bool CanBlockFitAnywhere(GameObject block)
+    {
+        if (block.transform.childCount == 0) return false;
+
+        List<Vector2Int> tileOffsets = new List<Vector2Int>();
+        
+        // Bloğun ilk parçasını "Çapa" (Merkez) olarak kabul edelim
+        Vector3 anchorPos = block.transform.GetChild(0).localPosition; 
+
+        // Bloğun tüm parçalarının bu çapaya göre aralarındaki mesafeyi (şeklini) çıkartalım
+        foreach (Transform child in block.transform)
+        {
+            if (!child.gameObject.activeSelf) continue; 
+            
+            int offsetX = Mathf.RoundToInt(child.localPosition.x - anchorPos.x);
+            int offsetY = Mathf.RoundToInt(child.localPosition.y - anchorPos.y);
+            tileOffsets.Add(new Vector2Int(offsetX, offsetY));
+        }
+
+        // Şimdi tahtadaki (Grid) HER BİR KAREYİ tek tek dolaş
+        for (int gridX = 0; gridX < width; gridX++)
+        {
+            for (int gridY = 0; gridY < height; gridY++)
+            {
+                bool canFitHere = true;
+
+                // Bu blok bu (gridX, gridY) merkezine sığar mı?
+                foreach (Vector2Int offset in tileOffsets)
+                {
+                    int targetX = gridX + offset.x;
+                    int targetY = gridY + offset.y;
+
+                    // Eğer bir parça bile dışarı taşıyorsa veya dolu bir yere geliyorsa, bu pozisyon geçersiz!
+                    if (!IsValidPosition(targetX, targetY))
+                    {
+                        canFitHere = false;
+                        break; // Diğer parçalara bakmaya gerek yok, buraya sığmıyor.
+                    }
+                }
+
+                // Eğer döngü kırılmadıysa, yani tüm parçalar sığdıysa, blok buraya yerleşebilir!
+                if (canFitHere)
+                {
+                    return true; 
+                }
+            }
+        }
+
+        // Tüm tahtayı denedik, hiçbir yere sığmadı!
+        return false;
+    }
+
+    // Her hamleden sonra bu fonksiyonu çağırıp oyunu kontrol edeceğiz
+    public void CheckIfGameOver()
+    {
+        if (isGameOver) return;
+
+        BlockDrag[] allBlocks = FindObjectsByType<BlockDrag>(FindObjectsSortMode.None);
+        int activeBlockCount = 0;
+        bool hasAnyMove = false;
+
+        Debug.Log("--- OYUN BİTTİ Mİ KONTROLÜ BAŞLADI ---");
+
+        foreach (BlockDrag block in allBlocks)
+        {
+            // 1. KONTROL: Bloğun içi boşaldıysa (çocukları silindiyse) atla
+            if (block.transform.childCount == 0) continue;
+
+            // 2. KONTROL: YERLEŞMİŞ BLOKLARI ELE!
+            // Oyun tahtası genelde Y=0 ve yukarısındadır. Aşağıda bekleyen bloklar eksili değerdedir.
+            // Eğer blok 0'ın yukarısındaysa o zaten tahtadadır, onu test ETME!
+            if (block.transform.position.y > -0.5f) 
+            {
+                continue; 
+            }
+
+            activeBlockCount++; // Gerçekten aşağıda bekleyen bir blok bulduk!
+
+            bool canFit = CanBlockFitAnywhere(block.gameObject);
+            Debug.Log("Test Edilen Aşağıdaki Blok: " + block.gameObject.name + " | Sığar mı?: " + canFit);
+
+            if (canFit)
+            {
+                hasAnyMove = true;
+            }
+        }
+
+        Debug.Log("Aşağıda bekleyen blok sayısı: " + activeBlockCount);
+        Debug.Log("Herhangi bir hamle kaldı mı?: " + hasAnyMove);
+
+        // ŞALTERİ İNDİRME ANI
+        if (!hasAnyMove && activeBlockCount > 0)
+        {
+            Debug.Log("ŞALTER İNDİ! HAMLE KALMADI! 🚨");
+            isGameOver = true;
+            
+            if (gameOverPanel != null)
+            {
+                gameOverPanel.SetActive(true);
             }
         }
     }
