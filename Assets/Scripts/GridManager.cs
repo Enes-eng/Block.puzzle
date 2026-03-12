@@ -2,7 +2,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.SceneManagement;
 using System.Collections.Generic;
-
+using TMPro; 
 public class GridManager : MonoBehaviour
 {
     [SerializeField] private int width = 8;
@@ -11,6 +11,10 @@ public class GridManager : MonoBehaviour
     public static GridManager Instance;
     public static bool isGameOver = false; 
 
+    [Header("Ekonomi Sistemi")]
+    public TextMeshProUGUI coinText; 
+    public int currentCoins = 0; 
+    
     public GameObject winPanel;      
     public GameObject gameOverPanel; 
 
@@ -24,6 +28,8 @@ public class GridManager : MonoBehaviour
     public int totalPiecesToWin = 5; 
     private int currentPieces = 0; 
 
+    [Header("Görsel Efektler")]
+    public GameObject fracturePrefab; // YENİ: Kırılma efektimizin kalıbı
     void Awake()
     {
         Instance = this;
@@ -31,6 +37,11 @@ public class GridManager : MonoBehaviour
 
     void Start()
     {
+        isGameOver = false;
+        
+        
+        currentCoins = PlayerPrefs.GetInt("PlayerCoins", 0); 
+        UpdateCoinUI(); 
         
         gridArray = new Transform[width, height];
         GenerateGrid();
@@ -112,6 +123,7 @@ public class GridManager : MonoBehaviour
 
     private void ClearRow(int y)
     {
+        AddCoins(50);
         for (int x = 0; x < width; x++)
         {
             if (gridArray[x, y] != null)
@@ -119,6 +131,7 @@ public class GridManager : MonoBehaviour
                 if (gridArray[x, y].CompareTag("PuzzlePiece"))
                 {
                     currentPieces++; 
+                  
                     
                     if (fillImage != null)
                     {
@@ -128,6 +141,7 @@ public class GridManager : MonoBehaviour
                     if (currentPieces >= totalPiecesToWin)
                     {
                         isGameOver = true; 
+                        AddCoins(100);
                         
                         if (winPanel != null)
                         {
@@ -135,6 +149,15 @@ public class GridManager : MonoBehaviour
                         }
                     }
                 }
+                
+                Vector3 fracturePos = gridArray[x, y].transform.position;
+                
+                // 2. O noktada YEPYENİ kırılma efektini yarat!
+                GameObject fracture = Instantiate(fracturePrefab, fracturePos, Quaternion.identity);
+                
+                // 3. Efekt çöp yaratmasın diye 1 saniye sonra sahneden sil
+                Destroy(fracture, 1f);
+
 
                 Destroy(gridArray[x, y].gameObject);
                 gridArray[x, y] = null;
@@ -144,6 +167,7 @@ public class GridManager : MonoBehaviour
 
     private void ClearColumn(int x)
     {
+        AddCoins(50);
         for (int y = 0; y < height; y++)
         {
             if (gridArray[x, y] != null)
@@ -151,6 +175,7 @@ public class GridManager : MonoBehaviour
                 if (gridArray[x, y].CompareTag("PuzzlePiece"))
                 {
                     currentPieces++; 
+                     
                     
                     if (fillImage != null)
                     {
@@ -160,6 +185,7 @@ public class GridManager : MonoBehaviour
                    if (currentPieces >= totalPiecesToWin)
                     {
                         isGameOver = true; 
+                        AddCoins(100);
                         
                         if (winPanel != null)
                         {
@@ -167,7 +193,13 @@ public class GridManager : MonoBehaviour
                         }
                     }
                 }
-
+              Vector3 fracturePos = gridArray[x, y].transform.position;
+                
+                // 2. O noktada YEPYENİ kırılma efektini yarat!
+                GameObject fracture = Instantiate(fracturePrefab, fracturePos, Quaternion.identity);
+                
+                // 3. Efekt çöp yaratmasın diye 1 saniye sonra sahneden sil
+                Destroy(fracture, 1f);
                 Destroy(gridArray[x, y].gameObject);
                 gridArray[x, y] = null;
             }
@@ -280,6 +312,26 @@ public class GridManager : MonoBehaviour
             {
                 gameOverPanel.SetActive(true);
             }
+        }
+    }
+    // Oyuncuya altın vermek istediğimizde bu fonksiyonu çağıracağız
+    public void AddCoins(int amount)
+    {
+        currentCoins += amount; // Parayı ekle
+        PlayerPrefs.SetInt("PlayerCoins", currentCoins); // KASAYA KİLİTLE! (Oyunu kapatsa da silinmez)
+        PlayerPrefs.Save(); // Kaydet
+        
+        UpdateCoinUI(); // Ekrandaki yazıyı güncelle
+        
+        Debug.Log(amount + " Altın Kazanıldı! Toplam Altın: " + currentCoins);
+    }
+
+    // Ekrandaki yazıyı güncelleyen küçük yardımcı fonksiyon
+    private void UpdateCoinUI()
+    {
+        if (coinText != null)
+        {
+            coinText.text = currentCoins.ToString();
         }
     }
 }
