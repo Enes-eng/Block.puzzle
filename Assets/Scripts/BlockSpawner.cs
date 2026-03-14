@@ -13,6 +13,8 @@ public class BlockSpawner : MonoBehaviour
     private float[] slotCenters = new float[] { 1f, 3.5f, 6f };
     private float slotMaxWidth = 2.5f;
 
+    public bool yapbozCiksinMi = true;
+
     void Awake()
     {
         Instance = this;
@@ -88,6 +90,8 @@ public class BlockSpawner : MonoBehaviour
 
     private void AddPuzzlePieceToRandomBlock(List<GameObject> blocks)
     {
+        if (yapbozCiksinMi == false) return;
+        
         int luckyBlockIndex = Random.Range(0, blocks.Count);
         GameObject luckyBlock = blocks[luckyBlockIndex];
 
