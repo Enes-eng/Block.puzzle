@@ -55,7 +55,7 @@ public class GridManager : MonoBehaviour
         {
             for (int y = 0; y < height; y++)
             {
-                GameObject spawnedTile = Instantiate(tilePrefab, new Vector3(x, y-1f, 0), Quaternion.identity);
+                GameObject spawnedTile = Instantiate(tilePrefab, new Vector3(x, y, 0), Quaternion.identity);
                 spawnedTile.name = $"Tile {x} {y}";
                 spawnedTile.transform.parent = transform;
 
@@ -68,7 +68,7 @@ public class GridManager : MonoBehaviour
     void AdjustCamera()
     {
         Camera.main.orthographicSize = 8f;
-        Camera.main.transform.position = new Vector3((float)width / 2 - 0.5f, (float)height / 2 - 0.5f - 2.5f, -10);
+        Camera.main.transform.position = new Vector3((float)width / 2 - 0.5f, (float)height / 2 - 0.5f-0.8f, -10);
     }
 
     public bool IsValidPosition(int x, int y)
