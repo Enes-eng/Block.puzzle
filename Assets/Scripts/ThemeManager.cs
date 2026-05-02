@@ -1,13 +1,16 @@
 using UnityEngine;
 using UnityEngine.UI;
-using TMPro; // Yazılar için gerekli kütüphane
+using TMPro;
 
 public class ThemeManager : MonoBehaviour
 {
+    [Header("Arka Plan Kamerası")]
+    public Camera mainCamera; 
+
     [Header("Tema Değişecek Objeler")]
-    public Image[] backgroundImages;     // Ana arka planlar
-    public Image[] panelImages;          // Menü pencereleri, Grid çerçevesi, tepsiler
-    public TextMeshProUGUI[] textElements; // Bütün yazılar (Puan, Menü isimleri vs.)
+    public Image[] panelImages;          
+    public TextMeshProUGUI[] textElements; 
+    public Image[] iconImages; // İkonlarımız için olan liste burada!
 
     [Header("Aydınlık Mod Renkleri (Krem)")]
     public Color lightBgColor;
@@ -23,47 +26,46 @@ public class ThemeManager : MonoBehaviour
 
     void Start()
     {
-        // Oyuncu oyuna girdiğinde önceki seçimini hatırla (0=Aydınlık, 1=Karanlık)
         isDarkMode = PlayerPrefs.GetInt("ThemePreference", 0) == 1;
-        ApplyTheme(); // Seçime göre renkleri boya
+        ApplyTheme(); 
     }
 
-    // Butona basıldığında çalışacak fonksiyon
     public void ToggleTheme()
     {
-        isDarkMode = !isDarkMode; // Durumu tersine çevir
-        
-        // Yeni seçimi hafızaya kaydet ki oyundan çıkınca silinmesin
+        isDarkMode = !isDarkMode; 
         PlayerPrefs.SetInt("ThemePreference", isDarkMode ? 1 : 0);
         PlayerPrefs.Save();
-        
-        ApplyTheme(); // Renkleri güncelle
+        ApplyTheme(); 
     }
 
-    // Objeleri ilgili renklere boyayan ana sistem
     private void ApplyTheme()
     {
-        // Hangi renkleri kullanacağımızı seçiyoruz
         Color currentBg = isDarkMode ? darkBgColor : lightBgColor;
         Color currentPanel = isDarkMode ? darkPanelColor : lightPanelColor;
         Color currentText = isDarkMode ? darkTextColor : lightTextColor;
 
-        // Listeye koyduğumuz tüm arka planları boya
-        foreach (Image img in backgroundImages)
+        // Kameranın Rengini Değiştir
+        if (mainCamera != null)
         {
-            if(img != null) img.color = currentBg;
+            mainCamera.backgroundColor = currentBg;
         }
 
-        // Listeye koyduğumuz tüm panelleri/tepsileri boya
+        // Panelleri Boya
         foreach (Image img in panelImages)
         {
             if(img != null) img.color = currentPanel;
         }
 
-        // Listeye koyduğumuz tüm yazıları boya
+        // Yazıları Boya
         foreach (TextMeshProUGUI txt in textElements)
         {
             if(txt != null) txt.color = currentText;
+        }
+
+        // İkonları Yazı Rengine Boya (Karanlıkta açık, aydınlıkta koyu)
+        foreach (Image icon in iconImages)
+        {
+            if(icon != null) icon.color = currentText;
         }
     }
 }
